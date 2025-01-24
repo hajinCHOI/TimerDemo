@@ -16,6 +16,7 @@ struct TimerDemoApp: App {
     @State var isSoundOn : Bool = true
     @State var timeRemaining : Int = 60
     @State var title : String = ""
+    
     var body: some Scene {
         
         WindowGroup {

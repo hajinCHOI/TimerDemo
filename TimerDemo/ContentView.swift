@@ -72,10 +72,6 @@ struct ContentView: View {
                             if isSetting { isSetting = false }
                             timeRemaining = min * 60 + sec
                         }
-                    
-                    
-                    
-                    
                     HStack {
                         if isSetting {
                             TextField("00", value: $min, formatter: NumberFormatter())
@@ -83,7 +79,6 @@ struct ContentView: View {
                             Text(":")
                             TextField("00", value: $sec, formatter: NumberFormatter())
                                 .frame(width: 25, height: 40)
-                            
                         }
                         else {
                             Text("\(String(format: "%02d", timeRemaining / 60)):\(String(format: "%02d", timeRemaining % 60))")
@@ -92,22 +87,17 @@ struct ContentView: View {
                                     autoSetting()
                                 }
                         }
-                        
                         Image(systemName: "stopwatch.fill")
                             .onTapGesture {
                                 isSetting.toggle()
                                 timeRemaining = min * 60 + sec
                             }
-                        
                         Image(systemName: isSoundOn ? "speaker.wave.1.fill" : "speaker.slash.fill")
                             .onTapGesture {
                                 isSoundOn.toggle()
                             }
                     }
                 }
-                
-                
-                
                 if isSetting {
                     TextField("title", text: $title)
                 } else {
@@ -118,7 +108,6 @@ struct ContentView: View {
             }
         }
         .padding()
-        
         .onChange(of: isRunning) {
             isOnTop = isRunning
         }
@@ -130,10 +119,9 @@ struct ContentView: View {
                         NSSound.beep()
                     }
                 }else if isRunning && timeRemaining == 0 {
-                    soundManager.playSound()
+                    if isSoundOn { soundManager.playSound() }
                     isFinished = true
                     isRunning = false
-                    
                 }
         }
     }
@@ -150,7 +138,6 @@ struct ContentView: View {
         } else {
             timeRemaining = 60
         }
-        
     }
     
 }
