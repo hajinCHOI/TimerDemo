@@ -124,26 +124,18 @@ struct ContentView: View {
         }
         .background(AlwaysOnTopView(window: NSApplication.shared.windows.first!, isAlwaysOnTop: isOnTop))
         .onReceive(timer) { t in
-            if isRunning {
-                if timeRemaining > 0 {
+                if isRunning && timeRemaining > 0 {
                     timeRemaining -= 1
                     if timeRemaining <= 5 && isSoundOn {
                         NSSound.beep()
                     }
-                }
-                if timeRemaining == 0 {
+                }else if isRunning && timeRemaining == 0 {
                     soundManager.playSound()
                     isFinished = true
                     isRunning = false
                     
                 }
-                
-            }
-            
         }
-        
-        
-        
     }
     
     func autoSetting() {
