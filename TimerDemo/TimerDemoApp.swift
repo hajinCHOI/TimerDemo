@@ -13,11 +13,6 @@ struct TimerDemoApp: App {
   var body: some Scene {
     WindowGroup {
       ContentView()
-        .onAppear {
-          if let window = NSApplication.shared.windows.first {
-            window.level = .floating
-          }
-        }
     }
     .windowResizability(.contentSize)
   }

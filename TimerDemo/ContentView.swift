@@ -55,6 +55,7 @@ struct ContentView: View {
   @State private var isSetting = false
   @State private var isFinished = false
   @State private var endTime: Date?
+  @State private var urlError: String? = nil
   
   let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
   private let soundManager = SoundManager.instance
@@ -140,7 +141,20 @@ struct ContentView: View {
   private var titleSection: some View {
     Group {
       if isSetting {
-        TextField("title", text: $title)
+        VStack(alignment: .leading, spacing: 4) {
+          TextField("title", text: $title)
+            .onChange(of: title) { _, newValue in
+              urlError = nil  // 새로운 입력이 있을 때 에러 초기화
+              if let url = extractURL(from: newValue) {
+                fetchWebPageTitle(from: url)
+              }
+            }
+          if let error = urlError {
+            Text(error)
+              .font(.caption)
+              .foregroundColor(.red)
+          }
+        }
       } else {
         Text(title)
           .font(.system(size: 15, weight: .bold))
@@ -200,6 +214,61 @@ struct ContentView: View {
     } else {
       timeRemaining = 60
     }
+  }
+  
+  // MARK: - URL Processing Methods
+  private func extractURL(from string: String) -> URL? {
+    guard let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue) else { return nil }
+    let matches = detector.matches(in: string, options: [], range: NSRange(location: 0, length: string.utf16.count))
+    
+    if let match = matches.first, let range = Range(match.range, in: string) {
+      let urlString = String(string[range])
+      return URL(string: urlString)
+    }
+    return nil
+  }
+  
+  private func fetchWebPageTitle(from url: URL) {
+    URLSession.shared.dataTask(with: url) { data, response, error in
+      DispatchQueue.main.async {
+        if let error = error {
+          // 네트워크 에러 처리
+          if (error as NSError).domain == NSURLErrorDomain {
+            switch (error as NSError).code {
+            case -1003:  // 호스트를 찾을 수 없음
+              self.urlError = "웹사이트를 찾을 수 없습니다"
+            case -1009:  // 인터넷 연결 없음
+              self.urlError = "인터넷 연결을 확인해주세요"
+            default:
+              self.urlError = "URL을 확인할 수 없습니다"
+            }
+          }
+          return
+        }
+        
+        guard let data = data,
+              let html = String(data: data, encoding: .utf8) else {
+          self.urlError = "웹페이지 내용을 읽을 수 없습니다"
+          return
+        }
+        
+        if let titleRange = html.range(of: "<title>(.+?)</title>", options: .regularExpression) {
+          let fullTitle = html[titleRange]
+            .replacingOccurrences(of: "<title>", with: "")
+            .replacingOccurrences(of: "</title>", with: "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+          
+          // 첫 번째 부분만 추출 (구분자 · 기준)
+          if let firstPart = fullTitle.components(separatedBy: " · ").first {
+            self.title = firstPart
+          } else {
+            self.title = fullTitle
+          }
+        } else {
+          self.urlError = "페이지 제목을 찾을 수 없습니다"
+        }
+      }
+    }.resume()
   }
   
 }
