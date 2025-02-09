@@ -85,7 +85,7 @@ struct ContentView: View {
   private var timerButton: some View {
     Image(systemName: isRunning ? "door.left.hand.closed" : "door.left.hand.open")
       .resizable()
-      .frame(width: 50, height: 50)
+      .frame(width: 80, height: 80)
       .onTapGesture(perform: toggleTimer)
   }
 
@@ -108,12 +108,20 @@ struct ContentView: View {
   }
 
   private var controlButtons: some View {
-    HStack {
-      Image(systemName: "stopwatch.fill")
-        .onTapGesture(perform: toggleSetting)
-      Image(systemName: isSoundOn ? "speaker.wave.1.fill" : "speaker.slash.fill")
-        .onTapGesture { isSoundOn.toggle() }
+    Grid(horizontalSpacing: 10, verticalSpacing: 10) {
+      GridRow {
+        Image(systemName: isOnTop ? "pin.fill" : "pin.slash.fill")
+          .onTapGesture { isOnTop.toggle() }
+        Image(systemName: "gear")
+          .onTapGesture(perform: toggleSetting)
+      }
+      GridRow {
+        Image(systemName: isSoundOn ? "speaker.wave.1.fill" : "speaker.slash.fill")
+          .onTapGesture { isSoundOn.toggle() }
+        Image(systemName: "stopwatch.fill")
+      }
     }
+    .font(.system(size: 20, weight: .bold))
   }
 
   private var timerDisplaySection: some View {
