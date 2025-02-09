@@ -44,12 +44,12 @@ class SoundManager {
 
 
 struct ContentView: View {
-  @Binding var isRunning: Bool
-  @Binding var timeRemaining: Int
-  @Binding var title: String
-  @Binding var isSoundOn: Bool
+  @State var isRunning : Bool = false
+  @State var isSoundOn : Bool = false
+  @State var timeRemaining : Int = 60
+  @State var title : String = ""
 
-  @State private var min: Int = 0
+  @State private var min: Int = 7
   @State private var sec: Int = 0
   @State private var isOnTop = true
   @State private var isSetting = false
@@ -64,8 +64,8 @@ struct ContentView: View {
       VStack(spacing: 10) {
         timerControlSection
         timerDisplaySection
-        titleSection
         endTimeSection
+        titleSection
       }
     }
     .padding()
@@ -118,7 +118,8 @@ struct ContentView: View {
       GridRow {
         Image(systemName: isSoundOn ? "speaker.wave.1.fill" : "speaker.slash.fill")
           .onTapGesture { isSoundOn.toggle() }
-        Image(systemName: "stopwatch.fill")
+        Image(systemName: isRunning ? "stop.fill" : "stopwatch.fill")
+            .onTapGesture(perform: toggleTimer)
       }
     }
     .font(.system(size: 20, weight: .bold))
@@ -150,7 +151,7 @@ struct ContentView: View {
   private var endTimeSection: some View {
     Group {
       if let endTime = endTime {
-        Text("Ends at: \(endTime, formatter: DateFormatter.shortTime)")
+        Text("\(endTime, formatter: DateFormatter.shortTime)까지")
           .font(.system(size: 15, weight: .bold))
       }
     }
@@ -212,8 +213,5 @@ extension DateFormatter {
 }
 
 #Preview {
-  ContentView(isRunning: .constant(false),
-              timeRemaining: .constant(60),
-              title: .constant("Test"),
-              isSoundOn: .constant(true))
+  ContentView()
 }
