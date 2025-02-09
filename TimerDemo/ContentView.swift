@@ -45,83 +45,137 @@ class SoundManager {
 
 struct ContentView: View {
   @Binding var isRunning: Bool
-  @Binding var timeRemaining : Int
-  @Binding var title : String
-  @Binding var isSoundOn : Bool
+  @Binding var timeRemaining: Int
+  @Binding var title: String
+  @Binding var isSoundOn: Bool
 
-  @State private var min : Int = 0
-  @State private var sec : Int = 0
-
+  @State private var min: Int = 0
+  @State private var sec: Int = 0
   @State private var isOnTop = true
-  @State private var isSetting : Bool = false
-  @State private var isFinished: Bool = false
+  @State private var isSetting = false
+  @State private var isFinished = false
+  @State private var endTime: Date?
 
   let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
   private let soundManager = SoundManager.instance
 
   var body: some View {
-    ZStack(alignment: .center){
-      VStack{
-        HStack {
-          Image(systemName: isRunning ? "door.left.hand.closed" : "door.left.hand.open" )
-            .resizable()
-            .frame(width: 50, height: 50)
-            .onTapGesture {
-              isRunning.toggle()
-              if isSetting { isSetting = false }
-              timeRemaining = min * 60 + sec
-            }
-          HStack {
-            if isSetting {
-              TextField("00", value: $min, formatter: NumberFormatter())
-                .frame(width: 25, height: 40)
-              Text(":")
-              TextField("00", value: $sec, formatter: NumberFormatter())
-                .frame(width: 25, height: 40)
-            }
-            else {
-              Text("\(String(format: "%02d", timeRemaining / 60)):\(String(format: "%02d", timeRemaining % 60))")
-                .font(.system(size: 20, weight: .bold))
-                .onTapGesture {
-                  autoSetting()
-                }
-            }
-            Image(systemName: "stopwatch.fill")
-              .onTapGesture {
-                isSetting.toggle()
-                timeRemaining = min * 60 + sec
-              }
-            Image(systemName: isSoundOn ? "speaker.wave.1.fill" : "speaker.slash.fill")
-              .onTapGesture {
-                isSoundOn.toggle()
-              }
-          }
-        }
-        if isSetting {
-          TextField("title", text: $title)
-        } else {
-          Text("\(title)")
-            .font(.system(size: 15, weight: .bold))
-        }
-
+    ZStack {
+      VStack(spacing: 10) {
+        timerControlSection
+        timerDisplaySection
+        titleSection
+        endTimeSection
       }
     }
     .padding()
-    .onChange(of: isRunning) {
-      isOnTop = isRunning
-    }
+    .onChange(of: isRunning, initial: true) { newValue, _ in isOnTop = newValue }
     .background(AlwaysOnTopView(window: NSApplication.shared.windows.first!, isAlwaysOnTop: isOnTop))
-    .onReceive(timer) { t in
-      if isRunning && timeRemaining > 0 {
-        timeRemaining -= 1
-        if timeRemaining <= 5 && isSoundOn {
-          NSSound.beep()
+    .onReceive(timer, perform: handleTimer)
+  }
+
+  // MARK: - View Components
+  private var timerControlSection: some View {
+    HStack {
+      timerButton
+      controlButtons
+    }
+  }
+
+  private var timerButton: some View {
+    Image(systemName: isRunning ? "door.left.hand.closed" : "door.left.hand.open")
+      .resizable()
+      .frame(width: 50, height: 50)
+      .onTapGesture(perform: toggleTimer)
+  }
+
+  private var timeInputView: some View {
+    Group {
+      if isSetting {
+        HStack {
+          TextField("00", value: $min, formatter: NumberFormatter())
+            .frame(width: 25, height: 40)
+          Text(":")
+          TextField("00", value: $sec, formatter: NumberFormatter())
+            .frame(width: 25, height: 40)
         }
-      }else if isRunning && timeRemaining == 0 {
-        if isSoundOn { soundManager.playSound() }
-        isFinished = true
-        isRunning = false
+      } else {
+        Text("\(String(format: "%02d", timeRemaining / 60)):\(String(format: "%02d", timeRemaining % 60))")
+          .font(.system(size: 20, weight: .bold))
+          .onTapGesture(perform: autoSetting)
       }
+    }
+  }
+
+  private var controlButtons: some View {
+    HStack {
+      Image(systemName: "stopwatch.fill")
+        .onTapGesture(perform: toggleSetting)
+      Image(systemName: isSoundOn ? "speaker.wave.1.fill" : "speaker.slash.fill")
+        .onTapGesture { isSoundOn.toggle() }
+    }
+  }
+
+  private var timerDisplaySection: some View {
+    HStack {
+      if !isSetting {
+        Text("\(String(format: "%02d", timeRemaining / 60)):\(String(format: "%02d", timeRemaining % 60))")
+          .font(.system(size: 24, weight: .bold))
+          .foregroundColor(timeRemaining <= 5 ? .red : .primary)
+      } else {
+        timeInputView
+      }
+    }
+  }
+
+  private var titleSection: some View {
+    Group {
+      if isSetting {
+        TextField("title", text: $title)
+      } else {
+        Text(title)
+          .font(.system(size: 15, weight: .bold))
+      }
+    }
+  }
+
+  private var endTimeSection: some View {
+    Group {
+      if let endTime = endTime {
+        Text("Ends at: \(endTime, formatter: DateFormatter.shortTime)")
+          .font(.system(size: 15, weight: .bold))
+      }
+    }
+  }
+
+  // MARK: - Methods
+  private func toggleTimer() {
+    isRunning.toggle()
+    if isSetting {
+      isSetting = false
+    }
+    timeRemaining = min * 60 + sec
+    endTime = isRunning ? Date().addingTimeInterval(TimeInterval(timeRemaining)) : nil
+  }
+
+  private func toggleSetting() {
+    isSetting.toggle()
+    timeRemaining = min * 60 + sec
+  }
+
+  private func handleTimer(_ time: Date) {
+    guard isRunning else { return }
+
+    if timeRemaining > 0 {
+      timeRemaining -= 1
+      if timeRemaining <= 5 && isSoundOn {
+        NSSound.beep()
+      }
+    } else {
+      if isSoundOn { soundManager.playSound() }
+      isFinished = true
+      isRunning = false
+      endTime = nil
     }
   }
 
@@ -139,6 +193,14 @@ struct ContentView: View {
     }
   }
 
+}
+
+extension DateFormatter {
+  static let shortTime: DateFormatter = {
+    let formatter = DateFormatter()
+    formatter.timeStyle = .short
+    return formatter
+  }()
 }
 
 #Preview {
