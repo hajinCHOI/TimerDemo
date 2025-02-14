@@ -50,7 +50,7 @@ struct ContentView: View {
 
   @State private var min: Int = 7
   @State private var sec: Int = 0
-  @State private var isOnTop = true
+  @State private var isOnTop = false
   @State private var isSetting = false
   @State private var isFinished = false
   @State private var endTime: Date?
@@ -69,7 +69,6 @@ struct ContentView: View {
       }
     }
     .padding()
-    .onChange(of: isRunning, initial: true) { newValue, _ in isOnTop = newValue }
     .background(AlwaysOnTopView(window: NSApplication.shared.windows.first!, isAlwaysOnTop: isOnTop))
     .onReceive(timer, perform: handleTimer)
   }
@@ -176,6 +175,7 @@ struct ContentView: View {
     if isSetting {
       isSetting = false
     }
+    isOnTop = isRunning
     timeRemaining = min * 60 + sec
     endTime = isRunning ? Date().addingTimeInterval(TimeInterval(timeRemaining)) : nil
   }
@@ -198,6 +198,7 @@ struct ContentView: View {
       isFinished = true
       isRunning = false
       endTime = nil
+      isOnTop = false
     }
   }
 
